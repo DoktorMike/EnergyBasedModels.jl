@@ -1,3 +1,5 @@
+import EnergyBasedModels
+
 using Distributions
 using Plots
 
