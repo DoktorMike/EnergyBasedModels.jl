@@ -78,3 +78,33 @@ res4 = Flux.Tracker.gradient(G,[1.5,1.0,3.0])[1]
 using ReverseDiff
 res5 = ReverseDiff.gradient(G,[1.5,1.0,3.0])
 
+
+# Gradients of distributions
+
+#using ForwardDiff: gradient
+using Flux
+using Flux.Tracker
+using Distributions
+using Flux.Tracker: gradient
+using Distributions: Gaussian, logpdf, gradlogpdf, MultivariateNormal
+
+function logprob(x)
+    a = Gaussian(0, 1)
+    return logpdf.(a, x)
+end
+
+function logprob2(x, z)
+    a = Gaussian(z[1], z[2])
+    return logpdf.(a, x)
+end
+
+μ = [1, 1]
+Σ = Float64[i==j ? rand() : 0 for i in 1:2, j in 1:2]
+pz = MultivariateNormal(μ, Σ) 
+                                      
+gradient(x -> logprob2(x, [2,3]), 1)
+
+
+
+struct Affine{S, T, V}
+    W::S
