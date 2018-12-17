@@ -105,6 +105,36 @@ pz = MultivariateNormal(μ, Σ)
 gradient(x -> logprob2(x, [2,3]), 1)
 
 
+# Multiple arguments taking gradients
+φ(x, ω)=tanh(x'*ω)
+φ([1,2,1,1], [0.1,-0.2,0.3,-0.4])
+gradient(φ, [1,2,1], [1,1,1])
 
-struct Affine{S, T, V}
+
+struct Affine{F, S, T}
     W::S
+    b::T
+    φ::F
+end
+
+function Affine(in::Integer, out::Integer; initW=randn, initb=randn)
+    Affine(initW(out, in), initb(out), identity)
+end
+
+function Affine(in::Integer, out::Integer, φ::Function; initW=randn, initb=randn)
+    Affine(initW(out, in), initb(out), φ)
+end
+
+function (a::Affine)(X::AbstractArray)
+    W, b, φ = a.W, a.b, a.φ
+    φ.(W*X .+ b)
+end
+
+l = Affine(10, 5)
+l(rand(10, 40))
+
+layers = [Affine(10, 5, x->1/(1+exp(-x))), 
+          Affine(5, 3), 
+          x->tanh.(x)]
+foldl((x, m)->m(x), layers, init=randn(10))
+

@@ -1,5 +1,6 @@
 using Distributions: Gaussian, gradlogpdf, logpdf, loglikelihood
-using Flux.Tracker
+using Flux.Tracker: gradient
+using Flux
 
 
 # Model is y = bx + a
@@ -7,7 +8,10 @@ using Flux.Tracker
 
 
 
-function basic_bbvi(m, p, q)
+# Arguments: log p(x|z), log p(z), log q(z;lambda)
+function basic_bbvi(loglikelihood, logpdist, logqdist, nsamples)
+
+
 
 end
 
