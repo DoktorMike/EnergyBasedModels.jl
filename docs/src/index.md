@@ -29,3 +29,17 @@ layers = [Affine(10, 5, x->1/(1+exp(-x))),
 foldl((x, m)->m(x), layers, init=randn(10))
 ```
 
+We can also use fully Bayesian layers like this.
+
+```@example
+using EnergyBasedModels: AffineB, Affine, z, resample!
+using Flux: param, params, Params
+
+a = AffineB(2, 1)
+x = rand(2)
+a(x)
+
+resample!(a)
+a(x)
+
+```
