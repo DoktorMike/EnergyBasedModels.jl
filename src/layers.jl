@@ -27,13 +27,6 @@ Flux.@treelike Affine
 
 ### BAYES ###
 
-"""
-    z(μ, logσ)
-
-Draw a sample from the parameterized Gaussian `q` distribution by using the
-reparameterization trick.
-"""
-z(μ, logσ) = μ + exp(logσ)*randn()
 
 """
 Structure representing a Bayesian Affine transformation layer.
@@ -48,27 +41,48 @@ struct AffineB{F, S, T}
     φ::F
 end
 
+
+"""
+    initaffineb(in::Integer, out::Integer, μ, logσ)
+
+Helper function for initializing a Bayesian Affine layer where the variational
+parameters `μ` and `logσ` are given.
+"""
+function initaffineb(in::Integer, out::Integer, μ, logσ)
+    s = z.(μ, logσ)
+    W, b = reshape(s[1:out*in], out, in), reshape(s[out*in+1:end], out)
+    W, b
+end
+
 """
     initaffineb(in::Integer, out::Integer)
 
 Helper function for initializing a Bayesian Affine layers parameters.
 """
 function initaffineb(in::Integer, out::Integer)
-    μ = zeros(out*in+out)
-    logσ = zeros(out*in+out)
-    s = z.(μ, logσ)
-    W, b = reshape(s[1:out*in], out, in), reshape(s[out*in+1:end], out)
+    μ, logσ = param(zeros(out*in+out)), param(zeros(out*in+out))
+    W, b = initaffineb(in, out, μ, logσ)
     W, b, μ, logσ
 end
 
 function AffineB(in::Integer, out::Integer)
     W, b, μ, logσ = initaffineb(in, out)
-    AffineB(param(W), param(b), param(μ), param(logσ), identity)
+    AffineB(W, b, μ, logσ, identity)
+end
+
+function AffineB(in::Integer, out::Integer, μ, logσ)
+    W, b = initaffineb(in, out, μ, logσ)
+    AffineB(W, b, μ, logσ, identity)
 end
 
 function AffineB(in::Integer, out::Integer, φ::Function)
     W, b, μ, logσ = initaffineb(in, out)
-    AffineB(param(W), param(b), param(μ), param(logσ), φ)
+    AffineB(W, b, μ, logσ, φ)
+end
+
+function AffineB(in::Integer, out::Integer, φ::Function, μ, logσ)
+    W, b = initaffineb(in, out, μ, logσ)
+    AffineB(W, b, μ, logσ, φ)
 end
 
 function (a::AffineB)(X::AbstractArray)
