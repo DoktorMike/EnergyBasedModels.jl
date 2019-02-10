@@ -32,14 +32,25 @@ foldl((x, m)->m(x), layers, init=randn(10))
 We can also use fully Bayesian layers like this.
 
 ```@example
-using EnergyBasedModels: AffineB, Affine, z, resample!
+using EnergyBasedModels: AffineB, Affine, z, resample!, resample
 using Flux: param, params, Params
+using Flux.Tracker
 
+x = [0 0 1 1; 0 1 0 1]
+y = [0 1 1 1]
 a = AffineB(2, 1)
-x = rand(2)
-a(x)
+pars = params(a)
 
-resample!(a)
-a(x)
+for i in 1:10
+    a = AffineB(2, 1, pars[1], pars[2])
+    l = sum((a(x) .- y).^2)
+    Tracker.back!(l)
+    for p in pars
+        p.data .-= 0.1 .* Tracker.data(p.grad);
+        Tracker.tracker(p).grad .= 0;
+    end
+end
+
+#a = resample(a)
 
 ```

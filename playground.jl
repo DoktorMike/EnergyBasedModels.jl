@@ -439,3 +439,68 @@ lineplot(perfdf[:, :LogLikelihood], width=80, name="Likelihood")
 lineplot(perfdf[:, :LogPrior], width=80, name="Prior")
 lineplot(perfdf[:, :LogQ], width=80, name="Q")
 lineplot(perfdf[:, :Performance], width=80, name="MAE")
+
+# _____ _              ____             ___ 
+#|  ___| |_   ___  __ | __ ) _   _  __ |__ \
+#| |_  | | | | \ \/ / |  _ \| | | |/ _` |/ /
+#|  _| | | |_| |>  <  | |_) | |_| | (_| |_| 
+#|_|   |_|\__,_/_/\_\ |____/ \__,_|\__, (_) 
+#                                  |___/    
+
+using Flux
+using Flux.Tracker
+
+struct AffineB{F, S, T}
+    W::S
+    b::T
+
+    μ::T
+    logσ::T
+
+    φ::F
+end
+
+z(μ, logσ) = μ + exp(logσ)*randn()
+
+function initaffineb(in::Integer, out::Integer, μ, logσ)
+    s = z.(μ, logσ)
+    W, b = reshape(s[1:out*in], out, in), reshape(s[out*in+1:end], out)
+    W, b
+end
+
+function initaffineb(in::Integer, out::Integer)
+    μ, logσ = param(zeros(out*in+out)), param(zeros(out*in+out))
+    W, b = initaffineb(in, out, μ, logσ)
+    W, b, μ, logσ
+end
+
+function AffineB(in::Integer, out::Integer)
+    W, b, μ, logσ = initaffineb(in, out)
+    AffineB(W, b, μ, logσ, identity)
+end
+
+function AffineB(in::Integer, out::Integer, φ::Function)
+    W, b, μ, logσ = initaffineb(in, out)
+    AffineB(W, b, μ, logσ, φ)
+end
+
+function (a::AffineB)(X::AbstractArray)
+    W, b, φ = a.W, a.b, a.φ
+    φ.(W*X .+ b)
+end
+
+Flux.@treelike AffineB # This should allow me to call params on an AffineB type.
+
+# Simple OR logic problem
+x = [0 0 1 1; 0 1 0 1]
+y = [0 1 1 1]
+a = AffineB(2, 1)
+
+l = sum((a(x) .- y).^2) # Sum squared error
+pars = params(a) # You have to collect the parameters BEFORE you do back! or it dies..
+Tracker.back!(l) # Backpropagate
+
+for p in pars
+    p.data .-= 0.01 .* Tracker.data(p.grad)
+    Tracker.tracker(p).grad .= 0;
+end

@@ -70,14 +70,14 @@ function AffineB(in::Integer, out::Integer)
     AffineB(W, b, μ, logσ, identity)
 end
 
-function AffineB(in::Integer, out::Integer, μ, logσ)
-    W, b = initaffineb(in, out, μ, logσ)
-    AffineB(W, b, μ, logσ, identity)
-end
-
 function AffineB(in::Integer, out::Integer, φ::Function)
     W, b, μ, logσ = initaffineb(in, out)
     AffineB(W, b, μ, logσ, φ)
+end
+
+function AffineB(in::Integer, out::Integer, μ, logσ)
+    W, b = initaffineb(in, out, μ, logσ)
+    AffineB(W, b, μ, logσ, identity)
 end
 
 function AffineB(in::Integer, out::Integer, φ::Function, μ, logσ)
@@ -100,6 +100,11 @@ function resample!(a::AffineB)
         p.data .= reshape(ω, size(p))
         index += length(p)
     end
+end
+
+function resample(a::AffineB)
+    out, in = size(a.W)
+    AffineB(in, out, a.μ, a.logσ)
 end
 
 Flux.@treelike AffineB
